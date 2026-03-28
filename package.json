@@ -1,0 +1,19 @@
+{
+  "name": "sheetbridge-api",
+  "version": "1.0.0",
+  "description": "Unified REST API for Google Sheets, Airtable & Notion — normalize any spreadsheet into a clean REST interface",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
