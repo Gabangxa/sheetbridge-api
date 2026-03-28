@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SheetBridge API — One API for Sheets, Airtable &amp; Notion</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --card:     #161b22;
+      --border:   #30363d;
+      --accent:   #58a6ff;
+      --accent2:  #3fb950;
+      --text:     #c9d1d9;
+      --text-dim: #8b949e;
+      --danger:   #f85149;
+      --mono:     'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+      --sans:     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      line-height: 1.6;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Nav ─────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13,17,23,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+    }
+
+    .nav-logo {
+      font-family: var(--mono);
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+
+    .nav-logo span { color: var(--text-dim); font-weight: 400; }
+
+    .nav-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+      align-items: center;
+    }
+
+    .nav-links a { color: var(--text-dim); font-size: 0.9rem; transition: color 0.15s; }
+    .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); text-decoration: none; }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary { background: var(--accent); color: #0d1117; }
+    .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+
+    /* ── Sections ────────────────────────────────── */
+    section { padding: 5rem 2rem; }
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    /* ── Hero ────────────────────────────────────── */
+    #hero {
+      padding: 6rem 2rem 4rem;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(88,166,255,0.1);
+      border: 1px solid rgba(88,166,255,0.3);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.15;
+      color: #e6edf3;
+      margin-bottom: 1.25rem;
+      letter-spacing: -1px;
+    }
+
+    h1 .highlight { color: var(--accent); }
+
+    .hero-tagline {
+      font-size: 1.2rem;
+      color: var(--text-dim);
+      max-width: 560px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 3.5rem;
+    }
+
+    /* ── Code Block ──────────────────────────────── */
+    .code-window {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      text-align: left;
+      max-width: 780px;
+      margin: 0 auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .code-window-bar {
+      background: #21262d;
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-red    { background: #ff5f57; }
+    .dot-yellow { background: #febc2e; }
+    .dot-green  { background: #28c840; }
+
+    .code-window-label {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-left: 0.5rem;
+    }
+
+    .code-body {
+      padding: 1.5rem;
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+
+    .code-body .kw  { color: #ff7b72; }
+    .code-body .str { color: #a5d6ff; }
+    .code-body .key { color: #79c0ff; }
+    .code-body .val { color: #a8ff80; }
+    .code-body .num { color: #f2cc60; }
+    .code-body .cmt { color: var(--text-dim); font-style: italic; }
+    .code-body .url { color: var(--accent); }
+    .code-body .hdr { color: #d2a8ff; }
+
+    /* ── Feature columns ─────────────────────────── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.75rem;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(88,166,255,0.15);
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #e6edf3;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-card p {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* ── Section headings ────────────────────────── */
+    .section-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .section-header h2 {
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      font-weight: 700;
+      color: #e6edf3;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-header p {
+      color: var(--text-dim);
+      font-size: 1rem;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* ── Try It section ──────────────────────────── */
+    #try-it { background: var(--card); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+
+    .try-it-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .try-it-grid { grid-template-columns: 1fr; }
+      nav .nav-links { display: none; }
+    }
+
+    .try-it-controls label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.4rem;
+    }
+
+    .try-it-controls select,
+    .try-it-controls input,
+    .try-it-controls textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      padding: 0.6rem 0.75rem;
+      margin-bottom: 1rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .try-it-controls select:focus,
+    .try-it-controls input:focus,
+    .try-it-controls textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .try-it-controls textarea { resize: vertical; min-height: 90px; }
+
+    .try-it-controls select { cursor: pointer; }
+
+    .param-group { display: none; }
+    .param-group.active { display: block; }
+
+    .response-panel {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .response-panel-header {
+      background: #21262d;
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .response-panel-header span {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    .status-badge {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+    }
+
+    .status-badge.ok    { background: rgba(63,185,80,0.15); color: var(--accent2); }
+    .status-badge.error { background: rgba(248,81,73,0.15);  color: var(--danger); }
+    .status-badge.idle  { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+
+    .response-body {
+      padding: 1.25rem;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.7;
+      color: var(--text);
+      min-height: 260px;
+      max-height: 420px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* ── Pricing ─────────────────────────────────── */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .pricing-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.75rem;
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px rgba(88,166,255,0.2);
+    }
+
+    .pricing-popular {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: #0d1117;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.75rem;
+      border-radius: 12px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .pricing-tier {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+
+    .pricing-price {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #e6edf3;
+      margin-bottom: 0.25rem;
+    }
+
+    .pricing-price sub {
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: var(--text-dim);
+    }
+
+    .pricing-desc {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-bottom: 1.25rem;
+      min-height: 2.5rem;
+    }
+
+    .pricing-features {
+      list-style: none;
+      font-size: 0.85rem;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .pricing-features li::before {
+      content: '✓ ';
+      color: var(--accent2);
+      font-weight: 700;
+    }
+
+    /* ── Footer ──────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <!-- ── Nav ─────────────────────────────────────── -->
+  <nav>
+    <div class="nav-logo">SheetBridge<span>/api</span></div>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#try-it">Try It</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="/docs">Docs</a></li>
+      <li><a href="#try-it" class="btn btn-primary">Get API Key</a></li>
+    </ul>
+  </nav>
+
+  <!-- ── Hero ─────────────────────────────────────── -->
+  <section id="hero">
+    <div class="container">
+      <div class="badge">Now in public beta</div>
+      <h1>One API for <span class="highlight">Sheets</span>, Airtable &amp; Notion</h1>
+      <p class="hero-tagline">
+        Stop maintaining three SDKs. Query any spreadsheet database with a single REST call — normalized schema, one auth token, zero glue code.
+      </p>
+      <div class="hero-actions">
+        <a href="#try-it" class="btn btn-primary">Try the API free</a>
+        <a href="/docs" class="btn btn-outline">Read the docs</a>
+      </div>
+
+      <!-- Demo code block -->
+      <div class="code-window">
+        <div class="code-window-bar">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+          <span class="code-window-label">GET /v1/records?filter=Status:Active&amp;sort=Revenue:desc</span>
+        </div>
+        <div class="code-body">
+<span class="cmt"># Fetch all Active records, sorted by Revenue descending</span>
+<span class="kw">curl</span> <span class="str">https://sheetbridge.io/v1/records</span> \
+  -H <span class="str">"Authorization: Bearer demo_key_sheetbridge"</span> \
+  -G --data-urlencode <span class="str">"filter=Status:Active"</span> \
+     --data-urlencode <span class="str">"sort=Revenue:desc"</span>
+
+<span class="cmt"># Response</span>
+{
+  <span class="key">"records"</span>: [
+    {
+      <span class="key">"id"</span>:     <span class="str">"row_001"</span>,
+      <span class="key">"source"</span>: <span class="str">"sheets"</span>,
+      <span class="key">"fields"</span>: { <span class="key">"Name"</span>: <span class="str">"Acme Corp"</span>, <span class="key">"Status"</span>: <span class="str">"Active"</span>, <span class="key">"Revenue"</span>: <span class="num">12000</span> },
+      <span class="key">"created_at"</span>: <span class="str">"2026-03-01T10:00:00Z"</span>,
+      <span class="key">"updated_at"</span>: <span class="str">"2026-03-01T10:00:00Z"</span>
+    },
+    {
+      <span class="key">"id"</span>:     <span class="str">"row_005"</span>,
+      <span class="key">"source"</span>: <span class="str">"sheets"</span>,
+      <span class="key">"fields"</span>: { <span class="key">"Name"</span>: <span class="str">"Epsilon Tech"</span>, <span class="key">"Status"</span>: <span class="str">"Active"</span>, <span class="key">"Revenue"</span>: <span class="num">8900</span> }
+    }
+  ],
+  <span class="key">"next_cursor"</span>: <span class="val">null</span>,
+  <span class="key">"total"</span>: <span class="num">3</span>
+}</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ─────────────────────────────────── -->
+  <section id="features">
+    <div class="container">
+      <div class="section-header">
+        <h2>Everything you need, nothing you don't</h2>
+        <p>SheetBridge turns any spreadsheet into a reliable REST data layer in minutes.</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">&#128273;</div>
+          <h3>One API key</h3>
+          <p>A single Bearer token unlocks every connected source — Google Sheets, Airtable, and Notion. No per-source credentials scattered across your codebase.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128200;</div>
+          <h3>Normalized schema</h3>
+          <p>Every record returns the same shape: <code style="color:var(--accent);font-family:var(--mono);font-size:0.8em">id, source, fields, created_at, updated_at</code>. Your app logic never changes when you switch sources.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#9889;</div>
+          <h3>Rate-limit buffering</h3>
+          <p>SheetBridge absorbs the per-minute API quotas from each provider and queues requests automatically — your app never sees a 429 from Sheets or Airtable.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128269;</div>
+          <h3>Filter &amp; sort</h3>
+          <p>Server-side filtering (<code style="color:var(--accent);font-family:var(--mono);font-size:0.8em">?filter=Status:Active</code>) and multi-field sorting without pulling the full dataset down to your client.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128196;</div>
+          <h3>Cursor pagination</h3>
+          <p>Stable cursor-based pagination — safe for high-concurrency reads even while the underlying sheet is being updated in real time.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">&#128218;</div>
+          <h3>OpenAPI spec included</h3>
+          <p>Import <a href="/openapi.json">/openapi.json</a> directly into Postman, Insomnia, or any code generator. Auto-generates typed SDKs in seconds.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Try It ─────────────────────────────────────── -->
+  <section id="try-it">
+    <div class="container">
+      <div class="section-header">
+        <h2>Try it live</h2>
+        <p>The demo API key is pre-filled. Hit "Send Request" and see real data come back.</p>
+      </div>
+      <div class="try-it-grid">
+        <!-- Left: Controls -->
+        <div class="try-it-controls">
+          <label for="endpoint-select">Endpoint</label>
+          <select id="endpoint-select">
+            <option value="list">GET /v1/records — list records</option>
+            <option value="get">GET /v1/records/:id — get one record</option>
+            <option value="post">POST /v1/records — create record</option>
+          </select>
+
+          <!-- List params -->
+          <div class="param-group active" id="params-list">
+            <label for="p-filter">filter (FieldName:Value)</label>
+            <input id="p-filter" type="text" placeholder="e.g. Status:Active" value="Status:Active" />
+
+            <label for="p-sort">sort (FieldName:asc|desc)</label>
+            <input id="p-sort" type="text" placeholder="e.g. Revenue:desc" value="Revenue:desc" />
+
+            <label for="p-limit">limit</label>
+            <input id="p-limit" type="number" min="1" max="100" value="10" />
+          </div>
+
+          <!-- Get single -->
+          <div class="param-group" id="params-get">
+            <label for="p-id">Record ID</label>
+            <input id="p-id" type="text" placeholder="e.g. row_001" value="row_001" />
+          </div>
+
+          <!-- Post -->
+          <div class="param-group" id="params-post">
+            <label for="p-body">JSON body</label>
+            <textarea id="p-body">{"source":"sheets","fields":{"Name":"New Company","Status":"Trial","Revenue":0}}</textarea>
+          </div>
+
+          <button class="btn btn-primary" id="send-btn" style="width:100%;justify-content:center;padding:0.65rem 1rem;font-size:0.9rem;" onclick="sendRequest()">
+            Send Request &#8594;
+          </button>
+        </div>
+
+        <!-- Right: Response -->
+        <div>
+          <div class="response-panel">
+            <div class="response-panel-header">
+              <span id="response-url">Waiting for request...</span>
+              <span class="status-badge idle" id="status-badge">—</span>
+            </div>
+            <div class="response-body" id="response-body">// Click "Send Request" to call the API
+
+// Demo API key: demo_key_sheetbridge
+// All endpoints are live on this server.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Pricing ─────────────────────────────────────── -->
+  <section id="pricing">
+    <div class="container">
+      <div class="section-header">
+        <h2>Simple, predictable pricing</h2>
+        <p>Start free. Scale as your integration grows. No per-seat fees, no surprise overages.</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-tier">Free</div>
+          <div class="pricing-price">$0</div>
+          <p class="pricing-desc">Perfect for side projects and proof-of-concepts</p>
+          <ul class="pricing-features">
+            <li>1 connected source</li>
+            <li>2,000 reads / month</li>
+            <li>100 writes / month</li>
+            <li>Community support</li>
+          </ul>
+        </div>
+        <div class="pricing-card featured">
+          <div class="pricing-popular">Most Popular</div>
+          <div class="pricing-tier">Starter</div>
+          <div class="pricing-price">$19<sub>/mo</sub></div>
+          <p class="pricing-desc">For small teams shipping internal tools</p>
+          <ul class="pricing-features">
+            <li>3 connected sources</li>
+            <li>50,000 reads / month</li>
+            <li>5,000 writes / month</li>
+            <li>Webhook sync</li>
+            <li>Email support</li>
+          </ul>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-tier">Pro</div>
+          <div class="pricing-price">$49<sub>/mo</sub></div>
+          <p class="pricing-desc">For growing products with real traffic</p>
+          <ul class="pricing-features">
+            <li>Unlimited sources</li>
+            <li>500,000 reads / month</li>
+            <li>Unlimited writes</li>
+            <li>Custom field transforms</li>
+            <li>Priority support</li>
+          </ul>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-tier">Scale</div>
+          <div class="pricing-price">$99<sub>/mo</sub></div>
+          <p class="pricing-desc">For high-volume B2B and agency use cases</p>
+          <ul class="pricing-features">
+            <li>Everything in Pro</li>
+            <li>SLA 99.9% uptime</li>
+            <li>Dedicated rate-limit pool</li>
+            <li>SSO / SAML</li>
+            <li>Slack support channel</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ─────────────────────────────────────── -->
+  <footer>
+    <p>
+      &copy; 2026 SheetBridge &nbsp;|&nbsp;
+      <a href="/docs">API Docs</a> &nbsp;|&nbsp;
+      <a href="/openapi.json">OpenAPI spec</a> &nbsp;|&nbsp;
+      <a href="https://github.com/Gabangxa/sheetbridge-api" target="_blank" rel="noopener">GitHub</a>
+    </p>
+    <p style="margin-top:0.5rem;color:#484f58;font-size:0.75rem;">
+      Demo API key: <code style="color:var(--accent);font-family:var(--mono)">demo_key_sheetbridge</code>
+    </p>
+  </footer>
+
+  <script>
+    // ── Endpoint switcher ──────────────────────────────────────────────────
+    const endpointSelect = document.getElementById('endpoint-select');
+    const paramGroups    = document.querySelectorAll('.param-group');
+
+    endpointSelect.addEventListener('change', () => {
+      const val = endpointSelect.value;
+      paramGroups.forEach(g => g.classList.remove('active'));
+      const target = document.getElementById('params-' + val);
+      if (target) target.classList.add('active');
+    });
+
+    // ── Send request ───────────────────────────────────────────────────────
+    async function sendRequest() {
+      const btn        = document.getElementById('send-btn');
+      const respBody   = document.getElementById('response-body');
+      const respUrl    = document.getElementById('response-url');
+      const statusEl   = document.getElementById('status-badge');
+      const endpoint   = endpointSelect.value;
+      const API_KEY    = 'demo_key_sheetbridge';
+
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      respBody.textContent = '// Loading...';
+      statusEl.className = 'status-badge idle';
+      statusEl.textContent = '...';
+
+      try {
+        let url, options;
+
+        if (endpoint === 'list') {
+          const filter = document.getElementById('p-filter').value.trim();
+          const sort   = document.getElementById('p-sort').value.trim();
+          const limit  = document.getElementById('p-limit').value.trim();
+          const params = new URLSearchParams();
+          if (filter) params.set('filter', filter);
+          if (sort)   params.set('sort',   sort);
+          if (limit)  params.set('limit',  limit);
+          url     = '/v1/records?' + params.toString();
+          options = { method: 'GET', headers: { Authorization: 'Bearer ' + API_KEY } };
+
+        } else if (endpoint === 'get') {
+          const id = document.getElementById('p-id').value.trim() || 'row_001';
+          url      = '/v1/records/' + encodeURIComponent(id);
+          options  = { method: 'GET', headers: { Authorization: 'Bearer ' + API_KEY } };
+
+        } else if (endpoint === 'post') {
+          let body;
+          try {
+            body = JSON.parse(document.getElementById('p-body').value);
+          } catch (e) {
+            respBody.textContent = '// Error: invalid JSON body\n// ' + e.message;
+            statusEl.className   = 'status-badge error';
+            statusEl.textContent = 'JSON error';
+            btn.disabled = false;
+            btn.textContent = 'Send Request →';
+            return;
+          }
+          url     = '/v1/records';
+          options = {
+            method:  'POST',
+            headers: { Authorization: 'Bearer ' + API_KEY, 'Content-Type': 'application/json' },
+            body:    JSON.stringify(body),
+          };
+        }
+
+        respUrl.textContent = (options.method) + ' ' + url;
+
+        const response = await fetch(url, options);
+        const data     = await response.json();
+        const pretty   = JSON.stringify(data, null, 2);
+
+        respBody.textContent = pretty;
+
+        if (response.ok) {
+          statusEl.className   = 'status-badge ok';
+          statusEl.textContent = response.status + ' OK';
+        } else {
+          statusEl.className   = 'status-badge error';
+          statusEl.textContent = response.status;
+        }
+
+      } catch (err) {
+        respBody.textContent = '// Network error: ' + err.message;
+        statusEl.className   = 'status-badge error';
+        statusEl.textContent = 'Error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Request →';
+      }
+    }
+  </script>
+</body>
+</html>
