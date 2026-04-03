@@ -1,0 +1,332 @@
+{
+  "spec_version": "1.0.0",
+  "current_stage": "mvp",
+
+  "identity": {
+    "idea_id": "b7e3a291-4f62-4d08-9c1a-spreadbridge01",
+    "solution_name": "SheetBridge API",
+    "slug": "spreadsheet-db-bridge-api",
+    "created_at": "2026-03-28T10:45:00Z",
+    "repo_url": "https://github.com/Gabangxa/sheetbridge-api",
+    "replit_url": "https://replit.com/new/github/Gabangxa/sheetbridge-api"
+  },
+
+  "problem": {
+    "statement": "Developers building on Google Sheets, Airtable, or Notion as lightweight backends must implement three separate OAuth flows, three incompatible record schemas, and three pagination models — and rewrite every data access call when a client switches platforms.",
+    "evidence": [
+      {
+        "source": "SheetDB / Sheet2API / SheetBest market signal",
+        "summary": "Three Sheets-only API products each report 10K–50K developer accounts paying $9–$49/mo — proving strong WTP for a managed Sheets REST API with no free tier."
+      },
+      {
+        "source": "Airtable developer forum",
+        "summary": "50+ threads requesting higher rate limits and better SDK ergonomics; Airtable's hard 5 req/s limit is a known pain point with no paid workaround."
+      },
+      {
+        "source": "notion-sdk-js / ayvi-0001/notion-api GitHub",
+        "summary": "4,000+ stars on the official JS SDK; unofficial wrappers exist precisely because the official API DX for relational data requires multiple nested calls per record set."
+      }
+    ],
+    "severity": "important",
+    "frequency": "daily",
+    "existing_solutions": [
+      { "name": "SheetDB",          "url": "https://sheetdb.io",   "pricing": "$9–$49/mo", "weakness": "Google Sheets only; pay-per-request at higher tiers" },
+      { "name": "Sheet2API",        "url": "https://sheet2api.com","pricing": "$9–$39/mo", "weakness": "Sheets only; no normalized schema" },
+      { "name": "SheetBest",        "url": "https://sheetbest.io", "pricing": "$9–$39/mo", "weakness": "Sheets only; no filter/sort operators" },
+      { "name": "Airtable native",  "url": "https://airtable.com", "pricing": "Free w/ plan", "weakness": "5 req/s hard rate limit; Airtable-only" },
+      { "name": "Notion native API","url": "https://developers.notion.com", "pricing": "Free", "weakness": "Complex cursor pagination; requires multiple nested calls for relational data" }
+    ]
+  },
+
+  "user": {
+    "primary": {
+      "description": "Freelance developer or indie hacker building client portals, internal tools, or SaaS prototypes on top of spreadsheet/database platforms.",
+      "job_to_be_done": "When I'm building an app on top of Google Sheets, Airtable, or Notion / I want a single REST API that normalizes all three platforms into one consistent interface / so I can ship faster and switch backends without rewriting my data layer.",
+      "willingness_to_pay": "medium",
+      "willingness_to_pay_notes": "$19–$49/mo validated by SheetDB's thousands of paying customers at the same price range for a Sheets-only product with less capability.",
+      "acquisition_channel": "rapidapi"
+    }
+  },
+
+  "monetisation": {
+    "model": "freemium",
+    "price_points": [
+      {
+        "name": "Starter",
+        "price_usd": 19,
+        "cadence": "monthly",
+        "features": [
+          "20,000 records/day",
+          "3 connected sources",
+          "All platforms (Sheets, Airtable, Notion)",
+          "Filter + sort query params",
+          "Cursor-based pagination"
+        ]
+      },
+      {
+        "name": "Pro",
+        "price_usd": 49,
+        "cadence": "monthly",
+        "features": [
+          "100,000 records/day",
+          "Unlimited connected sources",
+          "Webhook push on record change",
+          "Rate-limit SLA (Airtable buffering guaranteed)",
+          "Priority support"
+        ]
+      }
+    ],
+    "payment_provider": "stripe",
+    "distribution": [
+      {
+        "channel": "rapidapi",
+        "asset_type": "api_docs",
+        "notes": "Primary discovery channel for API consumers. List with normalized endpoint examples and pricing tiers."
+      },
+      {
+        "channel": "product_hunt",
+        "asset_type": "product_hunt_listing",
+        "notes": "Launch post targeting developers and indie hackers. Lead with the multi-platform unified schema angle."
+      },
+      {
+        "channel": "hacker_news",
+        "asset_type": "post",
+        "notes": "Show HN post. Technical framing — focus on rate-limit buffering and normalized schema moat."
+      },
+      {
+        "channel": "dev_to",
+        "asset_type": "post",
+        "notes": "Tutorial article: 'I built a unified Sheets/Airtable/Notion API — here's how'. Include curl examples from /docs."
+      }
+    ],
+    "revenue_target": {}
+  },
+
+  "scope": {
+    "mvp": {
+      "core_flow": [
+        "Developer lands on /docs",
+        "Copies demo API key",
+        "Calls GET /v1/records?source=sheets&resourceId=<id>",
+        "Receives normalized {id, source, fields, created_at, updated_at} records",
+        "Calls POST /v1/records to create a record",
+        "Calls PATCH /v1/records/:id to update",
+        "Calls DELETE /v1/records/:id to remove"
+      ],
+      "in": [
+        {
+          "id": "f01",
+          "name": "Normalized records CRUD",
+          "description": "GET /v1/records (list + filter + sort + cursor pagination), GET /v1/records/:id, POST, PATCH, DELETE",
+          "rationale": "Core of the job-to-be-done: one REST interface regardless of source"
+        },
+        {
+          "id": "f02",
+          "name": "API key auth",
+          "description": "Bearer token auth middleware; demo key for evaluation",
+          "rationale": "Required to ship any paid tier — every call must be attributed to a project"
+        },
+        {
+          "id": "f03",
+          "name": "Interactive docs",
+          "description": "/docs page with live try-it form and curl examples; /openapi.json",
+          "rationale": "Self-serve onboarding — developer must be able to evaluate without contacting anyone"
+        },
+        {
+          "id": "f04",
+          "name": "Connected sources list",
+          "description": "GET /v1/sources returns all connected data sources for the authenticated project",
+          "rationale": "Necessary for multi-source workflows and for the dashboard onboarding flow"
+        },
+        {
+          "id": "f05",
+          "name": "Health endpoint",
+          "description": "GET /health returns {status: ok} for uptime monitoring and Replit deploy verification",
+          "rationale": "Non-negotiable for any hosted API product"
+        }
+      ],
+      "out": [
+        {
+          "name": "Google Sheets OAuth connect flow",
+          "reason": "Not implemented in current build — data layer is mock-only",
+          "deferred_to": "mmp"
+        },
+        {
+          "name": "Airtable integration",
+          "reason": "v0.2 scope per research; rate-limit buffering is a separate engineering effort",
+          "deferred_to": "future"
+        },
+        {
+          "name": "Notion integration",
+          "reason": "v0.3 scope per research",
+          "deferred_to": "future"
+        },
+        {
+          "name": "Usage counter / SQLite metering",
+          "reason": "Not implemented; required for tier enforcement",
+          "deferred_to": "mmp"
+        },
+        {
+          "name": "Rate limiting (200/2000 req/min)",
+          "reason": "Not implemented; required before public launch",
+          "deferred_to": "mmp"
+        },
+        {
+          "name": "Per-project API key generation",
+          "reason": "Current build uses single hardcoded demo key",
+          "deferred_to": "mmp"
+        }
+      ]
+    },
+    "mmp": {
+      "additions": [
+        "Stripe Checkout integration wired to Starter ($19/mo) and Pro ($49/mo) price points",
+        "Stripe webhook handler: checkout.session.completed → activate plan, customer.subscription.deleted → downgrade to free",
+        "Per-project API key generation and storage (SQLite)",
+        "Usage metering in SQLite: calls/day per API key, enforced against tier limits",
+        "Rate limiting middleware: 200 req/min (free/demo), 2000 req/min (paid)",
+        "First-run onboarding flow: connect Google Sheets via OAuth, receive project API key",
+        "Empty states on /docs: 'No sources connected yet — connect Google Sheets to get started'",
+        "Error states: 401 (bad key), 429 (rate limit), 503 (source unavailable), 404 (record not found)",
+        "Landing page copy (index.html): problem → solution → pricing → CTA",
+        "RapidAPI listing: endpoint reference, normalized schema example, pricing tiers",
+        "Product Hunt listing copy",
+        "Hacker News Show HN post draft",
+        "dev.to tutorial article draft",
+        "Deployment checklist with env_vars, webhook URL pattern, Replit verification"
+      ],
+      "non_negotiables": [
+        "Stripe Checkout completes end-to-end: test card → webhook → plan activated → API key unlocked",
+        "Rate limit enforced: free key returns 429 after 200 req/min, paid key allows 2000 req/min",
+        "Usage counter persists across server restarts (SQLite, not in-memory)",
+        "GET /health returns 200 after all mmp additions",
+        "All distribution assets written to /marketing/ directory with correct filenames",
+        "Deployment checklist includes STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, DATABASE_URL",
+        "Webhook base URL documented as https://<repl-name>.<username>.repl.co/webhooks/stripe",
+        "PORT binding uses process.env.PORT, server binds to 0.0.0.0"
+      ]
+    }
+  },
+
+  "tech": {
+    "ui": {
+      "framework": "vanilla",
+      "component_library": "none",
+      "tone": "minimal-dark",
+      "palette": {
+        "primary": "#4F46E5",
+        "accent": "#10B981",
+        "neutral": ["#F9FAFB", "#6B7280", "#1F2937", "#111827"],
+        "success": "#10B981",
+        "error": "#EF4444"
+      },
+      "typography": {
+        "heading_font": "Inter",
+        "body_font": "Inter",
+        "scale": [12, 14, 16, 20, 24, 32]
+      },
+      "spec_file": "ui-spec.md"
+    },
+    "stack": {
+      "frontend": "Static HTML/CSS/JS (no build step)",
+      "backend": "Node.js + Express",
+      "database": "SQLite (node:sqlite built-in, Node.js 22+)",
+      "auth": "API key (Bearer token); Google OAuth for source connect",
+      "payments": "Stripe"
+    },
+    "replit_config": {
+      "run_command": "node server.js",
+      "language": "nodejs",
+      "entrypoint": "server.js"
+    },
+    "env_vars": [
+      { "key": "PORT",                    "description": "Port for Express to listen on. Defaults to 3000.", "required": false },
+      { "key": "STRIPE_SECRET_KEY",       "description": "Stripe secret key for payment API calls.", "required": true },
+      { "key": "STRIPE_WEBHOOK_SECRET",   "description": "Stripe webhook signing secret for verifying webhook payloads.", "required": true },
+      { "key": "GOOGLE_CLIENT_ID",        "description": "Google OAuth2 client ID for Sheets connect flow.", "required": true },
+      { "key": "GOOGLE_CLIENT_SECRET",    "description": "Google OAuth2 client secret.", "required": true },
+      { "key": "SESSION_SECRET",          "description": "Secret for signing session cookies during OAuth flow.", "required": true },
+      { "key": "BASE_URL",                "description": "Public base URL of the deployment, used to construct the Google OAuth redirect URI. e.g. https://<repl-name>.<username>.repl.co", "required": true }
+    ],
+    "external_services": [
+      { "name": "Stripe",        "purpose": "Subscription billing and webhook events", "free_tier": "No monthly fee; 2.9% + 30¢ per transaction", "setup_url": "https://dashboard.stripe.com/register" },
+      { "name": "Google Sheets API", "purpose": "OAuth source connection and record read/write", "free_tier": "Free up to quota limits", "setup_url": "https://console.cloud.google.com/" }
+    ],
+    "decision_log": [
+      {
+        "timestamp": "2026-04-02T00:00:00Z",
+        "agent": "human+claude",
+        "field_changed": "tech.stack.database",
+        "reason": "Added SQLite (node:sqlite built-in) for API key storage and usage metering. Switched from better-sqlite3 (requires native compilation) to node:sqlite (zero-dependency, Replit-safe, Node.js 22+)."
+      }
+    ]
+  },
+
+  "gates": {
+    "research_complete": {
+      "status": "passed",
+      "evaluated_by": "research-agent",
+      "evaluated_at": "2026-03-28T10:45:00Z",
+      "notes": "Full research run completed. Slug: spreadsheet-db-bridge-api. Score: 18/25."
+    },
+    "scope_approved": {
+      "status": "passed",
+      "evaluated_by": "human",
+      "evaluated_at": "2026-03-28T12:00:00Z",
+      "notes": "Scope approved. MVP targets Google Sheets only (v0.1). Airtable and Notion deferred."
+    },
+    "ui_ready": {
+      "status": "passed",
+      "evaluated_by": "mockup-agent",
+      "evaluated_at": "2026-03-28T14:00:00Z",
+      "notes": "public/index.html and public/docs.html present. Vanilla HTML, no build step."
+    },
+    "mvp_functional": {
+      "status": "pending",
+      "evaluated_by": "mvp-agent",
+      "evaluated_at": null,
+      "notes": "MVP build reviewed 2026-04-02: API shape and schema are correct. Critical gaps — no real Google Sheets connection (all mock data), no OAuth, no API key issuance, no SQLite, no rate limiting. These are mmp additions per scope.mmp. Marking pending until real data layer is confirmed or consciously deferred."
+    },
+    "ship_approved": {
+      "status": "pending",
+      "evaluated_by": "human",
+      "evaluated_at": null,
+      "notes": "Pending human decision: ship with mock data layer (demo-mode) or land Sheets OAuth first. See MVP review in product-spec notes."
+    },
+    "mmp_complete": {
+      "status": "pending",
+      "evaluated_by": "mmp-agent",
+      "evaluated_at": null,
+      "notes": null
+    }
+  },
+
+  "locked_fields": [
+    "problem.statement",
+    "problem.evidence",
+    "user.primary.job_to_be_done",
+    "identity.idea_id",
+    "identity.slug"
+  ],
+
+  "_runs": [
+    {
+      "agent": "research-agent",
+      "started_at": "2026-03-28T10:00:00Z",
+      "completed_at": "2026-03-28T10:45:00Z",
+      "status": "completed",
+      "stage_before": "research",
+      "stage_after": "mockup",
+      "notes": "Full research pipeline run. research.md and mockup-brief.md written to research/2026-03-28-1045/."
+    },
+    {
+      "agent": "mockup-agent",
+      "started_at": "2026-03-28T14:00:00Z",
+      "completed_at": "2026-03-28T16:00:00Z",
+      "status": "completed",
+      "stage_before": "mockup",
+      "stage_after": "mvp",
+      "notes": "Mockup built and pushed to Gabangxa/sheetbridge-api. API shape correct, data layer is mock-only."
+    }
+  ]
+}
