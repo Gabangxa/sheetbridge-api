@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Connect Google Sheets — SheetBridge</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#0d1117;--card:#161b22;--border:#30363d;--accent:#58a6ff;--accent2:#3fb950;--text:#c9d1d9;--text-dim:#8b949e;--danger:#ef4444;--mono:'JetBrains Mono','Fira Code',monospace;--sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+    body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-height:100vh;padding:3rem 1rem}
+    nav{width:100%;max-width:560px;display:flex;align-items:center;justify-content:space-between;margin-bottom:3rem}
+    .logo{font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--accent)}
+    .logo span{color:var(--text-dim);font-weight:400}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:2.5rem;width:100%;max-width:520px}
+    h1{font-size:1.4rem;font-weight:700;color:#e6edf3;margin-bottom:.5rem}
+    p.sub{font-size:.9rem;color:var(--text-dim);margin-bottom:2rem;line-height:1.6}
+    label{display:block;font-size:.78rem;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem}
+    input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:.85rem;padding:.6rem .75rem;margin-bottom:1.25rem;outline:none;transition:border-color .15s}
+    input:focus{border-color:var(--accent)}
+    .help{font-size:.78rem;color:var(--text-dim);margin-top:-.9rem;margin-bottom:1.25rem}
+    .help a{color:var(--accent)}
+    button{width:100%;background:var(--accent);color:#0d1117;border:none;border-radius:6px;font-size:.9rem;font-weight:700;padding:.7rem 1rem;cursor:pointer;transition:opacity .15s}
+    button:hover{opacity:.85}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .result{margin-top:1.5rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1.25rem;font-family:var(--mono);font-size:.8rem;line-height:1.7;white-space:pre-wrap;word-break:break-all;display:none}
+    .result.success{border-color:var(--accent2);color:var(--accent2)}
+    .result.error{border-color:var(--danger);color:var(--danger)}
+    .step{display:flex;gap:.75rem;align-items:flex-start;margin-bottom:1rem}
+    .step-num{background:rgba(88,166,255,.12);color:var(--accent);font-family:var(--mono);font-size:.75rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:.1rem}
+    .step-text{font-size:.875rem;color:var(--text-dim);line-height:1.5}
+    .divider{border:none;border-top:1px solid var(--border);margin:1.75rem 0}
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="logo">SheetBridge<span>/connect</span></div>
+    <a href="/" style="font-size:.85rem;color:var(--text-dim)">Back to home</a>
+  </nav>
+
+  <div class="card">
+    <h1>Connect your Google Sheet</h1>
+    <p class="sub">You've authorized SheetBridge. Now tell us which spreadsheet to connect.</p>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Open your Google Sheet and copy the Spreadsheet ID from the URL:<br>
+        <code style="color:var(--accent);font-family:var(--mono);font-size:.8em">docs.google.com/spreadsheets/d/<strong>SPREADSHEET_ID</strong>/edit</code>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">Paste it below along with the sheet tab name (defaults to "Sheet1").</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Click "Connect" — your API key will be ready to use immediately.</div>
+    </div>
+
+    <hr class="divider"/>
+
+    <label for="spreadsheet-id">Spreadsheet ID</label>
+    <input id="spreadsheet-id" type="text" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms"/>
+    <div class="help">Find it in the URL: /spreadsheets/d/<strong>YOUR_ID</strong>/edit</div>
+
+    <label for="sheet-name">Sheet tab name</label>
+    <input id="sheet-name" type="text" placeholder="Sheet1" value="Sheet1"/>
+
+    <label for="source-name">Source name (optional)</label>
+    <input id="source-name" type="text" placeholder="My CRM Sheet"/>
+
+    <button id="connect-btn" onclick="connectSource()">Connect Google Sheet</button>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    function getProjectId() {
+      return new URLSearchParams(window.location.search).get('project_id') || '';
+    }
+
+    async function connectSource() {
+      const btn    = document.getElementById('connect-btn');
+      const result = document.getElementById('result');
+      const spreadsheetId = document.getElementById('spreadsheet-id').value.trim();
+      const sheetName     = document.getElementById('sheet-name').value.trim() || 'Sheet1';
+      const name          = document.getElementById('source-name').value.trim() || 'My Google Sheet';
+
+      if (!spreadsheetId) {
+        result.className = 'result error';
+        result.style.display = 'block';
+        result.textContent = 'Error: Spreadsheet ID is required.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Connecting...';
+      result.style.display = 'none';
+
+      // We need the project API key — retrieve it from session-storage if previously saved
+      const apiKey = sessionStorage.getItem('sb_api_key') || prompt('Enter your SheetBridge API key:');
+      if (!apiKey) {
+        btn.disabled = false;
+        btn.textContent = 'Connect Google Sheet';
+        return;
+      }
+      sessionStorage.setItem('sb_api_key', apiKey);
+
+      try {
+        const resp = await fetch('/v1/sources', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey,
+          },
+          body: JSON.stringify({ spreadsheet_id: spreadsheetId, sheet_name: sheetName, name }),
+        });
+        const data = await resp.json();
+        if (resp.ok) {
+          result.className = 'result success';
+          result.style.display = 'block';
+          result.textContent = JSON.stringify(data, null, 2);
+          btn.textContent = 'Connected!';
+        } else {
+          result.className = 'result error';
+          result.style.display = 'block';
+          result.textContent = JSON.stringify(data, null, 2);
+          btn.disabled = false;
+          btn.textContent = 'Connect Google Sheet';
+        }
+      } catch (err) {
+        result.className = 'result error';
+        result.style.display = 'block';
+        result.textContent = 'Network error: ' + err.message;
+        btn.disabled = false;
+        btn.textContent = 'Connect Google Sheet';
+      }
+    }
+  </script>
+</body>
+</html>

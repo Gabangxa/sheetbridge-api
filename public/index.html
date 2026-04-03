@@ -622,47 +622,40 @@
           <p class="pricing-desc">Perfect for side projects and proof-of-concepts</p>
           <ul class="pricing-features">
             <li>1 connected source</li>
-            <li>2,000 reads / month</li>
-            <li>100 writes / month</li>
-            <li>Community support</li>
+            <li>500 records / day</li>
+            <li>200 req / min</li>
+            <li>Demo key, no signup needed</li>
           </ul>
+          <a href="/docs" class="btn btn-outline" style="margin-top:1.5rem;width:100%;justify-content:center;text-decoration:none">Try for free</a>
         </div>
         <div class="pricing-card featured">
           <div class="pricing-popular">Most Popular</div>
           <div class="pricing-tier">Starter</div>
           <div class="pricing-price">$19<sub>/mo</sub></div>
-          <p class="pricing-desc">For small teams shipping internal tools</p>
+          <p class="pricing-desc">For freelancers shipping client tools fast</p>
           <ul class="pricing-features">
             <li>3 connected sources</li>
-            <li>50,000 reads / month</li>
-            <li>5,000 writes / month</li>
-            <li>Webhook sync</li>
+            <li>20,000 records / day</li>
+            <li>200 req / min</li>
+            <li>All platforms (Sheets, Airtable, Notion)</li>
+            <li>Filter + sort + cursor pagination</li>
             <li>Email support</li>
           </ul>
+          <button class="btn btn-primary" style="margin-top:1.5rem;width:100%;justify-content:center;border:none;cursor:pointer" onclick="checkout('starter')">Get Starter</button>
         </div>
         <div class="pricing-card">
           <div class="pricing-tier">Pro</div>
           <div class="pricing-price">$49<sub>/mo</sub></div>
-          <p class="pricing-desc">For growing products with real traffic</p>
+          <p class="pricing-desc">For products with real traffic and SLA needs</p>
           <ul class="pricing-features">
-            <li>Unlimited sources</li>
-            <li>500,000 reads / month</li>
-            <li>Unlimited writes</li>
-            <li>Custom field transforms</li>
+            <li>Unlimited connected sources</li>
+            <li>100,000 records / day</li>
+            <li>2,000 req / min</li>
+            <li>Webhook push on record change</li>
+            <li>Rate-limit SLA (Airtable buffering)</li>
             <li>Priority support</li>
           </ul>
-        </div>
-        <div class="pricing-card">
-          <div class="pricing-tier">Scale</div>
-          <div class="pricing-price">$99<sub>/mo</sub></div>
-          <p class="pricing-desc">For high-volume B2B and agency use cases</p>
-          <ul class="pricing-features">
-            <li>Everything in Pro</li>
-            <li>SLA 99.9% uptime</li>
-            <li>Dedicated rate-limit pool</li>
-            <li>SSO / SAML</li>
-            <li>Slack support channel</li>
-          </ul>
+          <button class="btn btn-outline" style="margin-top:1.5rem;width:100%;justify-content:center;border-width:1px;cursor:pointer" onclick="checkout('pro')">Get Pro</button>
         </div>
       </div>
     </div>
@@ -682,6 +675,31 @@
   </footer>
 
   <script>
+    // ── Checkout ───────────────────────────────────────────────────────────
+    async function checkout(plan) {
+      // Require a real API key — cannot checkout with demo key
+      const apiKey = prompt('Enter your SheetBridge API key (create one free at POST /v1/projects):');
+      if (!apiKey || apiKey === 'demo_key_sheetbridge') {
+        alert('Please create a project first:\n\ncurl -X POST https://your-deployment.repl.co/v1/projects \\\n  -H "Content-Type: application/json" \\\n  -d \'{"name":"My Project"}\'');
+        return;
+      }
+      try {
+        const resp = await fetch('/v1/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+          body: JSON.stringify({ plan }),
+        });
+        const data = await resp.json();
+        if (resp.ok && data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else {
+          alert('Checkout error: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Network error: ' + err.message);
+      }
+    }
+
     // ── Endpoint switcher ──────────────────────────────────────────────────
     const endpointSelect = document.getElementById('endpoint-select');
     const paramGroups    = document.querySelectorAll('.param-group');

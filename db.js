@@ -102,8 +102,14 @@ function getTodayUsage(api_key) {
   return row ? row.call_count : 0;
 }
 
+// ─── Plan management ─────────────────────────────────
+function activatePlan(projectId, tier) {
+  db.prepare('UPDATE projects SET tier = ? WHERE id = ?').run(tier, projectId);
+}
+
 module.exports = {
   createProject, getProjectByApiKey,
+  activatePlan,
   createSource, getSourceById, getSourcesByProjectId, updateSourceTokens,
   incrementUsage, getTodayUsage,
   TIER_LIMITS, RATE_LIMITS,

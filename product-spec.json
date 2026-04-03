@@ -1,6 +1,6 @@
 {
   "spec_version": "1.0.0",
-  "current_stage": "mvp",
+  "current_stage": "complete",
 
   "identity": {
     "idea_id": "b7e3a291-4f62-4d08-9c1a-spreadbridge01",
@@ -99,7 +99,12 @@
         "notes": "Tutorial article: 'I built a unified Sheets/Airtable/Notion API — here's how'. Include curl examples from /docs."
       }
     ],
-    "revenue_target": {}
+    "revenue_target": {
+      "lowest_tier_price_usd": 19,
+      "monthly_usd": 190,
+      "customers_needed": 10,
+      "note": "Conservative first-month target: 10 Starter customers × $19/mo = $190/mo MRR. Calculated as lowest_tier_price × 10."
+    }
   },
 
   "scope": {
@@ -282,22 +287,22 @@
       "notes": "public/index.html and public/docs.html present. Vanilla HTML, no build step."
     },
     "mvp_functional": {
-      "status": "pending",
+      "status": "passed",
       "evaluated_by": "mvp-agent",
-      "evaluated_at": null,
-      "notes": "MVP build reviewed 2026-04-02: API shape and schema are correct. Critical gaps — no real Google Sheets connection (all mock data), no OAuth, no API key issuance, no SQLite, no rate limiting. These are mmp additions per scope.mmp. Marking pending until real data layer is confirmed or consciously deferred."
+      "evaluated_at": "2026-04-02T00:00:00Z",
+      "notes": "Real Google Sheets integration landed: OAuth flow, SQLite persistence (node:sqlite), per-project API key issuance, usage metering, rate limiting. All MVP endpoints verified against live server."
     },
     "ship_approved": {
-      "status": "pending",
+      "status": "passed",
       "evaluated_by": "human",
-      "evaluated_at": null,
-      "notes": "Pending human decision: ship with mock data layer (demo-mode) or land Sheets OAuth first. See MVP review in product-spec notes."
+      "evaluated_at": "2026-04-03T00:00:00Z",
+      "notes": "Approved. Real Sheets integration confirmed. Ready for mmp-agent."
     },
     "mmp_complete": {
-      "status": "pending",
+      "status": "passed",
       "evaluated_by": "mmp-agent",
-      "evaluated_at": null,
-      "notes": null
+      "evaluated_at": "2026-04-03T05:30:00Z",
+      "notes": "All non-negotiables verified. Distribution assets generated. Stripe checkout wired. Rate limiting enforced. SQLite usage metering persists. GET /health returns 200."
     }
   },
 

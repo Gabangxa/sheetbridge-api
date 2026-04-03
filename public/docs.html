@@ -263,6 +263,7 @@
       <div class="sidebar-section">Getting Started</div>
       <ul>
         <li><a href="#overview">Overview</a></li>
+        <li><a href="#onboarding">First-run setup</a></li>
         <li><a href="#authentication">Authentication</a></li>
         <li><a href="#base-url">Base URL</a></li>
       </ul>
@@ -299,6 +300,25 @@
         <strong>Demo environment</strong>
         All examples use the demo key <code>demo_key_sheetbridge</code>. Data resets on each server restart.
         The demo server is running at the same origin as this page — try the live API now.
+      </div>
+
+      <!-- ── First-run onboarding ──────────────────────── -->
+      <h2 id="onboarding">First-run: connect your Google Sheet</h2>
+      <p>
+        The demo key works immediately with mock data. To use your own Google Sheets data:
+      </p>
+      <ol style="margin-left:1.25rem;font-size:.875rem;color:var(--text);line-height:2.2;margin-bottom:1.5rem">
+        <li><strong>Create a project</strong> — <code>POST /v1/projects</code> returns a real API key.</li>
+        <li><strong>Connect Google Sheets</strong> — <code>GET /auth/google?project_id=&lt;id&gt;</code> starts OAuth.</li>
+        <li><strong>Finish connecting</strong> — Enter your spreadsheet ID at <code>/connect</code>.</li>
+        <li><strong>Fetch records</strong> — <code>GET /v1/records?source_id=&lt;id&gt;</code>.</li>
+        <li><strong>Upgrade for more</strong> — <a href="/#pricing">Starter ($19/mo)</a> for 20K records/day.</li>
+      </ol>
+
+      <div class="callout callout-info">
+        <strong>No sources connected yet?</strong>
+        If <code>GET /v1/sources</code> returns an empty array, complete step 2 above.
+        The response will include an <code>empty_state.action</code> field telling you exactly what to do.
       </div>
 
       <!-- ── Auth ──────────────────────────────────────── -->
@@ -551,13 +571,21 @@
   -H <span class="hl-str">"Authorization: Bearer demo_key_sheetbridge"</span></pre>
           </div>
           <div class="code-block">
-            <div class="code-block-label">200 response</div>
+            <div class="code-block-label">200 response — with connected sources</div>
             <pre>{
   <span class="hl-key">"sources"</span>: [
-    { <span class="hl-key">"id"</span>: <span class="hl-str">"src_001"</span>, <span class="hl-key">"type"</span>: <span class="hl-str">"sheets"</span>,   <span class="hl-key">"name"</span>: <span class="hl-str">"Customer CRM Sheet"</span>,    <span class="hl-key">"status"</span>: <span class="hl-str">"active"</span>      },
-    { <span class="hl-key">"id"</span>: <span class="hl-str">"src_002"</span>, <span class="hl-key">"type"</span>: <span class="hl-str">"airtable"</span>, <span class="hl-key">"name"</span>: <span class="hl-str">"Product Backlog Base"</span>,   <span class="hl-key">"status"</span>: <span class="hl-str">"coming_soon"</span> },
-    { <span class="hl-key">"id"</span>: <span class="hl-str">"src_003"</span>, <span class="hl-key">"type"</span>: <span class="hl-str">"notion"</span>,   <span class="hl-key">"name"</span>: <span class="hl-str">"Company Wiki DB"</span>,       <span class="hl-key">"status"</span>: <span class="hl-str">"coming_soon"</span> }
+    { <span class="hl-key">"id"</span>: <span class="hl-str">"src_001"</span>, <span class="hl-key">"type"</span>: <span class="hl-str">"sheets"</span>, <span class="hl-key">"name"</span>: <span class="hl-str">"Customer CRM Sheet"</span>, <span class="hl-key">"status"</span>: <span class="hl-str">"active"</span> }
   ]
+}</pre>
+          </div>
+          <div class="code-block">
+            <div class="code-block-label">200 response — empty state (no sources connected yet)</div>
+            <pre>{
+  <span class="hl-key">"sources"</span>: [],
+  <span class="hl-key">"empty_state"</span>: {
+    <span class="hl-key">"message"</span>: <span class="hl-str">"No sources connected yet — connect Google Sheets to get started."</span>,
+    <span class="hl-key">"action"</span>:  <span class="hl-str">"GET /auth/google?project_id=&lt;your-project-id&gt;"</span>
+  }
 }</pre>
           </div>
         </div>
@@ -608,8 +636,9 @@
           <tr><td><code>400</code></td><td>Bad Request</td><td>Missing required fields (<code>source</code>, <code>fields</code>) or malformed JSON body</td></tr>
           <tr><td><code>401</code></td><td>Unauthorized</td><td>Missing or invalid <code>Authorization: Bearer</code> header</td></tr>
           <tr><td><code>404</code></td><td>Not Found</td><td>Record ID does not exist or endpoint path is incorrect</td></tr>
-          <tr><td><code>429</code></td><td>Too Many Requests</td><td>Rate limit exceeded — back off and retry after the <code>Retry-After</code> header value</td></tr>
+          <tr><td><code>429</code></td><td>Too Many Requests</td><td>Rate limit exceeded (200 req/min free, 2000 req/min paid) or daily record limit hit — upgrade at /pricing</td></tr>
           <tr><td><code>500</code></td><td>Internal Server Error</td><td>Unexpected server-side error — please open an issue on GitHub</td></tr>
+          <tr><td><code>503</code></td><td>Source Unavailable</td><td>Google Sheets OAuth token expired or source is unreachable — re-connect the source at GET /auth/google</td></tr>
         </tbody>
       </table>
 
